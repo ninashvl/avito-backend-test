@@ -1,0 +1,17 @@
+version: "3.8"
+
+services:
+  swagger-ui:
+    image: swaggerapi/swagger-ui
+    profiles: [ "swagger-ui" ]
+    ports:
+      - "127.0.0.1:3011:8080"
+    environment:
+      URLS: "[{ url: 'docs/openapi.json', name: 'clientv1' }]"
+    volumes:
+      - ./api:/usr/share/nginx/html/docs/
+  swagger-editor:
+    image: swaggerapi/swagger-editor
+    container_name: "swagger-editor-container"
+    ports:
+      - "3012:8080"
