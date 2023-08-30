@@ -1,0 +1,8 @@
+[server]
+addr = ":8082"
+
+[database]
+host = "localhost:5432"
+user_name = "user"
+db_name = "avito"
+password = "password"

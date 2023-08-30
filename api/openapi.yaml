@@ -91,7 +91,7 @@ paths:
         '400':
           description: bad request
         '404':
-          description: Пользователь не найден
+          description: Связка пользователь-сегмент не найдена
 components:
   schemas:
     AssignedSegmentDTO:

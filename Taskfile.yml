@@ -1,0 +1,92 @@
+# https://taskfile.dev
+version: '3'
+
+silent: true
+
+vars:
+  GO_MODULE: github.com/Pickausernaame/chat-service
+  GO_FILES:
+    sh: find . -type f -name '*.go' -not -path "./vendor/*" -not -path "*.gen.go" | tr "\n" " "
+  GOLANGCI_LINT_VERSION: v1.52.2
+  GOLANGCI_LINT_CACHE: .cache/golangci
+  DEV_TOOLS: |
+    github.com/daixiang0/gci@v0.10.1
+    mvdan.cc/gofumpt@v0.4.0
+    github.com/deepmap/oapi-codegen/cmd/oapi-codegen@master
+
+tasks:
+  default:
+    cmds:
+      - task: tidy
+      - task: fmt
+      - task: lint
+      - task: tests
+      - task: build
+
+  tidy:
+    - echo "- Tidy"
+    - go mod tidy
+    - task: vendor
+
+  vendor:
+    - echo "- Vendor"
+    - go mod vendor
+
+  fmt:
+    - echo "- Format"
+    - gofumpt -l -w {{.GO_FILES}}
+    - gci write -s standard -s default -s "prefix({{.GO_MODULE}})" {{.GO_FILES}}
+
+  lint:
+    cmds:
+      - echo "- Lint"
+      - mkdir -p {{.GOLANGCI_LINT_CACHE}}
+      - task: lint:cmd
+        vars: {CLI_ARGS: "run -v --fix --timeout=5m ./..."}
+
+
+  lint:cmd:
+    cmds:
+      - |
+        docker run --rm \
+          -v "$(pwd):/app" -w /app \
+          -v "$(pwd)/{{.GOLANGCI_LINT_CACHE}}:/root/.cache" \
+          golangci/golangci-lint:{{.GOLANGCI_LINT_VERSION}} \
+          golangci-lint {{.CLI_ARGS}}
+
+  tests:
+    cmds:
+      - echo "- Tests"
+      - go test -race ./...
+
+
+  build:
+    cmds:
+      - echo "- Build"
+      - go build ./cmd/service
+
+
+  dev-tools:install:
+    cmds:
+      - echo "- Install dev tools"
+      - |
+        {{- range $i, $tool := .DEV_TOOLS | splitLines -}}
+          {{ if $tool }} go install -v {{$tool}} {{end}}
+        {{end -}}
+
+
+  gen:api:
+    cmds:
+      - echo "Generate client server..."
+      - oapi-codegen --old-config-style -generate server,types,spec -package v1 ./api/openapi.yaml > ./internal/server/v1/server.gen.go
+
+
+  generate:
+    - echo "Run go generate..."
+    - go generate ./...
+    - task: gen:api
+    - task: fmt
+
+#  migrate:create:
+#  migrate create -ext sql -dir database/migration/ -seq init_mg
+#  migrate -path database/migration/ -database "postgresql://username:secretkey@localhost:5432/database_name?sslmode=disable" -verbose up
