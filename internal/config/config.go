@@ -20,9 +20,17 @@ type PostgresConfig struct {
 	Password string `toml:"password" validate:"required"`
 }
 
+type S3 struct {
+	Host            string `toml:"host" validate:"required,hostname_port"`
+	AccessKeyID     string `toml:"accessKeyID" validate:"required"`
+	SecretAccessKey string `toml:"secretAccessKey" validate:"required"`
+	Bucket          string `toml:"bucket" validate:"required"`
+}
+
 type Config struct {
 	ServerConf *ServerConfig   `toml:"server"`
 	PgConfig   *PostgresConfig `toml:"database"`
+	S3         *S3             `toml:"s3"`
 }
 
 func (cfg *PostgresConfig) DSN() string {

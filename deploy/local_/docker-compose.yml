@@ -19,9 +19,22 @@ services:
   db:
     container_name: db
     ports:
-      - "5432:5432"
+      - "5431:5432"
     image: postgres:15
     environment:
       - POSTGRES_USER=user
       - POSTGRES_PASSWORD=password
       - POSTGRES_DB=avito
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  minio:
+    container_name: s3
+    ports:
+      - '9000:9000'
+      - '9001:9001'
+    image: 'bitnami/minio:latest'
+    environment:
+      - MINIO_ROOT_USER=minio-root-user
+      - MINIO_ROOT_PASSWORD=minio-root-password
+      - MINIO_DEFAULT_BUCKETS=reports

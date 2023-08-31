@@ -4,17 +4,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
-
 	"github.com/Masterminds/squirrel"
 	"github.com/jmoiron/sqlx"
-
 	"github.com/ninashvl/avito-backend-test/internal/store"
+	"time"
 )
 
 var (
 	ErrSegmentNotFound = errors.New("segment not found")
 	ErrSegmentIsFound  = errors.New("segment is found")
+	segmentIsDeleted   = errors.New("segment is deleted")
 )
 
 type Repo struct {

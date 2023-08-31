@@ -10,9 +10,11 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"github.com/minio/minio-go/v7"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/ninashvl/avito-backend-test/internal/config"
+	"github.com/ninashvl/avito-backend-test/internal/repository/reports"
 	segment2 "github.com/ninashvl/avito-backend-test/internal/repository/segment"
 	"github.com/ninashvl/avito-backend-test/internal/repository/user"
 	v1 "github.com/ninashvl/avito-backend-test/internal/server/v1"
@@ -25,18 +27,29 @@ type Server struct {
 	srv *http.Server
 }
 
-func NewServer(cfg *config.Config, db *sqlx.DB) *Server {
+func NewServer(cfg *config.Config, db *sqlx.DB, client *minio.Client) *Server {
 	e := echo.New()
+	e.Use(middleware.Recover(), middleware.Logger(), middleware.CORS())
+
 	txtr := store.NewTransactor(db)
+
 	segmentRepo := segment2.NewRepo(db)
 	userRepo := user.NewRepo(db)
+	reportRepo := reports.NewRepo(cfg.S3.Bucket, client)
+
 	segmentUseCase := segment.NewUseCase(segmentRepo)
-	userUseCase := user2.NewUseCase(userRepo, txtr)
+	userUseCase := user2.NewUseCase(userRepo, reportRepo, txtr)
+
 	handlers := v1.NewHandler(segmentUseCase, userUseCase)
-	e.Use(middleware.Recover(), middleware.Logger())
-	res := &Server{&http.Server{Addr: cfg.ServerConf.Addr, Handler: e, ReadHeaderTimeout: time.Second * 5}}
 	v1.RegisterHandlers(e, handlers)
-	return res
+
+	return &Server{
+		&http.Server{
+			Addr:              cfg.ServerConf.Addr,
+			Handler:           e,
+			ReadHeaderTimeout: time.Second * 5,
+		},
+	}
 }
 
 func (s *Server) RunServer(ctx context.Context) error {

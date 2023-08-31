@@ -4,14 +4,18 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"github.com/jmoiron/sqlx"
-	_ "github.com/lib/pq"
-	"github.com/ninashvl/avito-backend-test/internal/config"
-	server "github.com/ninashvl/avito-backend-test/internal/server"
-	log "github.com/sirupsen/logrus"
-	"golang.org/x/sync/errgroup"
 	"os/signal"
 	"syscall"
+
+	"github.com/jmoiron/sqlx"
+	_ "github.com/lib/pq"
+	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/credentials"
+	log "github.com/sirupsen/logrus"
+	"golang.org/x/sync/errgroup"
+
+	"github.com/ninashvl/avito-backend-test/internal/config"
+	server "github.com/ninashvl/avito-backend-test/internal/server"
 )
 
 var cfgPath = flag.String("c", "./configs/config.toml", "path to config file")
@@ -37,8 +41,15 @@ func Run() error {
 	if err != nil {
 		return err
 	}
+
+	minioClient, err := minio.New(cfg.S3.Host, &minio.Options{
+		Creds: credentials.NewStaticV4(cfg.S3.AccessKeyID, cfg.S3.SecretAccessKey, ""),
+	})
+	if err != nil {
+		return fmt.Errorf("creating minio client error: %v", err)
+	}
 	defer db.Close()
-	srv := server.NewServer(&cfg, db)
+	srv := server.NewServer(&cfg, db, minioClient)
 	eg.Go(func() error {
 		return srv.RunServer(ctx)
 	})

@@ -8,7 +8,6 @@ import (
 
 	"github.com/Masterminds/squirrel"
 	"github.com/jmoiron/sqlx"
-	"github.com/lib/pq"
 
 	"github.com/ninashvl/avito-backend-test/internal/store"
 )
@@ -30,11 +29,11 @@ func (r *Repo) executor(ctx context.Context) store.Executor {
 }
 
 var (
-	ErrSegmentNotFound         = errors.New("segment not found error")
-	ErrUserNotFound            = errors.New("user not found error")
-	ErrSegmentIsAssignedToUser = errors.New("segment is already assigned to user")
+	SegmentNotFound = errors.New("segment not found error")
+	ErrUserNotFound = errors.New("user not found error")
 )
 
+// TODO: добавить проверку userNOTFOUND
 func (r *Repo) GetSegmentsByUserID(ctx context.Context, userID int) ([]string, error) {
 	query, args, err := squirrel.Select("segment_name").
 		From("user_segment").
@@ -47,12 +46,10 @@ func (r *Repo) GetSegmentsByUserID(ctx context.Context, userID int) ([]string, e
 	if err != nil {
 		return nil, fmt.Errorf("executing query GetSegmentsByUserID: %w", err)
 	}
-	if len(segments) == 0 {
-		return nil, ErrUserNotFound
-	}
 	return segments, nil
 }
 
+// TODO: возвращать ошибку если assign тот же 409
 func (r *Repo) AssignUserSegments(ctx context.Context, userID int64, segments []*AssignedSegment) error {
 	q := squirrel.Insert("user_segment").Columns("user_id", "segment_name")
 	for _, segment := range segments {
@@ -64,15 +61,10 @@ func (r *Repo) AssignUserSegments(ctx context.Context, userID int64, segments []
 	}
 	_, err = r.executor(ctx).ExecContext(ctx, query, args...)
 	if err != nil {
-		pqErr, ok := err.(*pq.Error)
-		if ok && pqErr.Code == "23505" {
-			return ErrSegmentIsAssignedToUser
-		}
 		return fmt.Errorf("executing query AssignUserSegments: %w", err)
 	}
 	return nil
 }
-
 func (r *Repo) DeleteUserSegments(ctx context.Context, userID int64, segments []string) error {
 	query, args, err := squirrel.Select("count(*)").From("user_segment").
 		Where(squirrel.Eq{"user_id": userID, "segment_name": segments, "deleted_at": nil}).
@@ -86,7 +78,7 @@ func (r *Repo) DeleteUserSegments(ctx context.Context, userID int64, segments []
 		return fmt.Errorf("exec query check user segments in DeleteUserSegments: %w", err)
 	}
 	if count != len(segments) {
-		return ErrSegmentNotFound
+		return SegmentNotFound
 	}
 	query, args, err = squirrel.Update("user_segment").Set("deleted_at", time.Now()).
 		Where(squirrel.Eq{"user_id": userID, "segment_name": segments, "deleted_at": nil}).
