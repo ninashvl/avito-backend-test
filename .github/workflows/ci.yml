@@ -30,4 +30,4 @@ jobs:
         with:
           go-version: ${{ matrix.go-version }}
       - uses: actions/checkout@v3
-      - run: go build ./cmd/chat-service
+      - run: go build ./cmd/server
