@@ -1,0 +1,15 @@
+[server]
+addr = ":8082"
+
+[database]
+host = "localhost:5431"
+user_name = "user"
+db_name = "avito"
+password = "password"
+
+[s3]
+host = "localhost:9000"
+accessKeyID = "minio-root-user"
+secretAccessKey = "minio-root-password"
+bucket = "reports"
+

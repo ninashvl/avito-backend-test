@@ -1,0 +1,203 @@
+openapi: 3.0.0
+
+info:
+  title: User Segmentation Service API
+  version: 1.0.0
+  description: API для управления сегментацией пользователей.
+  contact:
+    name: Nina Shuvalova
+    url: https://t.me/ninashvl
+    email: ninashvl@gmail.com
+
+servers:
+  - url: http://localhost:8082
+    description: Локальный сервер
+
+paths:
+  /segment:
+    post:
+      tags:
+        - Segment
+      summary: Создать сегмент
+      description: Создает новый сегмент пользователей
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSegmentReq"
+      responses:
+        '201':
+          description: Успешное создание сегмента
+        '400':
+          description: Bad request
+
+    delete:
+      tags:
+        - Segment
+      summary: Удалить сегмент
+      description: Удаляет сегменты пользователя
+      parameters:
+        - name: segment_name
+          in: query
+          description: Название сегмента
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Успешное удаление сегмента
+        '404':
+          description: Сегмент не найден
+        '400':
+          description: Bad request
+
+
+  /user/segments:
+    get:
+      tags:
+        - User
+      summary: Получить сегменты пользователя
+      description: Получение списка сегментов пользователя
+      parameters:
+        - name: user_id
+          in: query
+          description: ID пользователя
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+              example:
+                - AVITO_VOICE_MESSAGES
+                - AVITO_PERFORMANCE_VAS
+        '400':
+          description: bad request
+        '404':
+          description: Пользователь не найден
+
+    post:
+      tags:
+        - User
+      summary: Добавить и удалить сегменты пользователя
+      description: Добавляет и удаляет сегменты
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChangeUserSegmentsReq"
+
+      responses:
+        '201':
+          description: Успешное добавление и удаление сегментов у пользователя
+        '400':
+          description: bad request
+        '404':
+          description: Связка пользователь-сегмент не найдена
+
+
+  /report:
+    post:
+      tags:
+        - Report
+      summary: Выгрузить историю сегментов пользователя
+      description: Выгружает всю историю сегментов в файл и возвращает ссылку на него. Файл с отчетом лежит в S3 и имеет TTL 7 дней. Если массив user_ids пустой - выгрузка отчета будет по всем пользователям. Если from или to не будет - соответсвующая временная гранница не будет учитываться.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateReportReq"
+
+      responses:
+        '200':
+          description: Успешно сгенерирован отчет
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateReportResp"
+        '400':
+          description: bad request
+        '404':
+          description: Пользователь не найден
+
+
+components:
+  schemas:
+
+    AssignedSegmentDTO:
+      required:
+        - segment_name
+      type: object
+      properties:
+        segment_name:
+          type: string
+        ttl:
+          type: integer
+          format: int32
+
+    ChangeUserSegmentsReq:
+      required:
+        - add_segments
+        - delete_segments
+        - user_id
+      type: object
+      properties:
+        user_id:
+          type: integer
+        add_segments:
+          type: array
+          items:
+            $ref: "#/components/schemas/AssignedSegmentDTO"
+          description: Добавляемые сегменты
+        delete_segments:
+          description: Удаляемые сегменты
+          type: array
+          items:
+            type: string
+
+    CreateSegmentReq:
+      required:
+        - segment_name
+      type: object
+      properties:
+        segment_name:
+          type: string
+          description: Название сегмента
+        user_percentage:
+          type: integer
+          description: Процент пользователей в сегменте
+
+    CreateReportReq:
+      type: object
+      properties:
+        user_ids:
+          type: array
+          items:
+            type: integer
+          description: ID пользователей
+        from:
+          type: string
+          format: date
+          description: Начальная дата отчета
+        to:
+          type: string
+          format: date
+          description: Конечная дата отчета
+
+    CreateReportResp:
+      required:
+        - link
+      type: object
+      properties:
+        link:
+          type: string
+          description: Ссылка на отчет
