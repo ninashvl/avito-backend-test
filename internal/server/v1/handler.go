@@ -3,6 +3,7 @@ package v1
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -69,6 +70,9 @@ func (h Handler) GetUserSegments(eCtx echo.Context, params GetUserSegmentsParams
 	ctx := eCtx.Request().Context()
 	segments, err := h.userUseCase.GetSegmentsByUserID(ctx, params.UserId)
 	if err != nil {
+		if errors.Is(err, user.ErrUserNotFound) {
+			return eCtx.NoContent(http.StatusNotFound)
+		}
 		return eCtx.NoContent(http.StatusBadRequest)
 	}
 	return eCtx.JSON(http.StatusOK, segments)
@@ -79,7 +83,7 @@ func (h Handler) PostUserSegments(eCtx echo.Context) error {
 	req := &ChangeUserSegmentsReq{}
 	err := eCtx.Bind(req)
 	if err != nil {
-		logrus.WithError(err)
+		fmt.Println(err)
 		return eCtx.NoContent(http.StatusBadRequest)
 	}
 	addSegments := make([]*user.AssignedSegment, 0, len(req.AddSegments))
@@ -95,7 +99,10 @@ func (h Handler) PostUserSegments(eCtx echo.Context) error {
 		SegmentToDelete:  req.DeleteSegments,
 	})
 	if err != nil {
-		logrus.WithError(err)
+		if errors.Is(err, user.ErrSegmentIsAssignedToUser) {
+			return eCtx.NoContent(http.StatusConflict)
+		}
+		fmt.Println(err)
 		return eCtx.NoContent(http.StatusBadRequest)
 	}
 	return eCtx.NoContent(http.StatusOK)

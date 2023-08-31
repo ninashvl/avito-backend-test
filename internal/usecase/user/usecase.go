@@ -3,8 +3,15 @@ package user
 import (
 	"context"
 	"database/sql"
+	"errors"
+
 	repo "github.com/ninashvl/avito-backend-test/internal/repository/user"
 	"github.com/ninashvl/avito-backend-test/internal/store"
+)
+
+var (
+	ErrUserNotFound            = errors.New("user not found error")
+	ErrSegmentIsAssignedToUser = errors.New("segment is already assigned to user")
 )
 
 type userRepository interface {
@@ -25,6 +32,9 @@ func NewUseCase(r userRepository, txtr store.Transactor) *UseCase {
 func (u *UseCase) GetSegmentsByUserID(ctx context.Context, userID int) ([]string, error) {
 	segments, err := u.Repo.GetSegmentsByUserID(ctx, userID)
 	if err != nil {
+		if errors.Is(err, repo.ErrUserNotFound) {
+			return nil, ErrUserNotFound
+		}
 		return nil, err
 	}
 	return segments, nil
@@ -48,6 +58,9 @@ func (u *UseCase) ChangeSegmentsByUserID(ctx context.Context, changes *ChangeUse
 			}
 			err := u.Repo.AssignUserSegments(ctx, changes.UserID, segments)
 			if err != nil {
+				if errors.Is(err, repo.ErrSegmentIsAssignedToUser) {
+					return ErrSegmentIsAssignedToUser
+				}
 				return err
 			}
 		}
