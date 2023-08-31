@@ -4,7 +4,10 @@ version: '3'
 silent: true
 
 vars:
-  GO_MODULE: github.com/Pickausernaame/chat-service
+  DOCKER_COMPOSE_PATHS: |
+    ./deploy/local/docker-compose.yml
+    ./deploy/local/docker-compose.swagger-ui.yml
+  GO_MODULE: github.com/ninashvl/avito-backend-test
   GO_FILES:
     sh: find . -type f -name '*.go' -not -path "./vendor/*" -not -path "*.gen.go" | tr "\n" " "
   GOLANGCI_LINT_VERSION: v1.52.2
@@ -86,3 +89,46 @@ tasks:
     - go generate ./...
     - task: gen:api
     - task: fmt
+
+  deps:
+    cmds:
+      - echo "- Starting deps"
+      - task: deps:_cmd
+        vars:
+          DOCKER_CMD: up -d
+
+  deps:cmd:
+    cmds:
+      - echo "- Command on deps"
+      - task: deps:_cmd
+        vars:
+          DOCKER_CMD: '{{.CLI_ARGS}}'
+
+  deps:status:
+    cmds:
+      - echo "- Deps status"
+      - task: deps:_cmd
+        vars:
+          DOCKER_CMD: 'ps -a'
+
+  deps:logs:
+    vars:
+      DOCKER_CMD:
+    cmds:
+      - task: deps:_cmd
+        vars:
+          DOCKER_CMD: 'logs --tail=50 {{.CLI_ARGS}}'
+
+  deps:stop:
+    cmds:
+      - echo "- Stopping deps"
+      - task: deps:_cmd
+        vars:
+          DOCKER_CMD: 'stop'
+
+  deps:_cmd:
+    internal: true
+    cmds:
+      - echo {{.DOCKER_CMD}}
+      - echo "docker compose -f {{ trim .DOCKER_COMPOSE_PATHS | splitLines | join " -f " }} {{.DOCKER_CMD}}"
+      - docker compose -f {{ trim .DOCKER_COMPOSE_PATHS | splitLines | join " -f " }} {{.DOCKER_CMD}}

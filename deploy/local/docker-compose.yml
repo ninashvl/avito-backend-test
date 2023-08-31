@@ -1,20 +1,16 @@
 version: "3.9"
 
 services:
-#  app:
-#    container_name: app
-#    build:
-#      context: .
-#      args:
-#        LOCAL: "true"
-#    ports:
-#      - "8080:8080"
-#    depends_on:
-#      - db
-#    links:
-#      - db
-#    networks:
-#      - enrollment
+  app:
+    container_name: app
+    build:
+      context: ../..
+    ports:
+      - "8082:8082"
+    depends_on:
+      - db
+      - minio
+
 
   db:
     container_name: db

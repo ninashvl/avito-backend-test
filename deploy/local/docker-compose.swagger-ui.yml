@@ -3,13 +3,14 @@ version: "3.8"
 services:
   swagger-ui:
     image: swaggerapi/swagger-ui
-    profiles: [ "swagger-ui" ]
+    container_name: "swagger-ui-container"
     ports:
-      - "127.0.0.1:3011:8080"
+      - "3011:8080"
     environment:
       URLS: "[{ url: 'docs/openapi.yaml', name: 'v1' }]"
     volumes:
       - ../../api:/usr/share/nginx/html/docs/
+
   swagger-editor:
     image: swaggerapi/swagger-editor
     container_name: "swagger-editor-container"

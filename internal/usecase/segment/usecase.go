@@ -40,6 +40,9 @@ func (s *UseCase) CreateSegment(ctx context.Context, segmentName string) error {
 func (s *UseCase) DeleteSegment(ctx context.Context, segmentName string) error {
 	err := s.Repo.DeleteSegment(ctx, segmentName)
 	if err != nil {
+		if errors.Is(err, repo.ErrSegmentNotFound) {
+			return ErrSegmentNotFound
+		}
 		return err
 	}
 	return nil

@@ -18,7 +18,7 @@ import (
 	server "github.com/ninashvl/avito-backend-test/internal/server"
 )
 
-var cfgPath = flag.String("c", "./configs/config.toml", "path to config file")
+var cfgPath = flag.String("c", "./configs/local_config.toml", "path to config file")
 
 func main() {
 	flag.Parse()

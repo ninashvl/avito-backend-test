@@ -47,10 +47,12 @@ func (t *sqlxTransactor) RunInTx(ctx context.Context, fn func(ctx context.Contex
 	defer func() {
 		if p := recover(); p != nil {
 			// a panic occurred, rollback and repanic
+			// nolint: errcheck
 			tx.Rollback()
 			panic(p)
 		} else if err != nil {
 			// something went wrong, rollback
+			// nolint: errcheck
 			tx.Rollback()
 			return
 		}
